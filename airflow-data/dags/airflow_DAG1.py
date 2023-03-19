@@ -3,6 +3,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 #from airflow.contrib.operators.neo4j_operator import Neo4jOperator
 from airflow.providers.neo4j.operators.neo4j import Neo4jOperator
+from airflow.hooks.base_hook import BaseHook
 from datetime import datetime, timedelta
 from py2neo import Graph, Node, Relationship
 #from lxml import etree
@@ -19,7 +20,7 @@ default_args = {
     'email_on_failure': False,
     'email_on_retry'  : False,
     'retries'         : 1,
-    'retry_delay'     : timedelta(minutes=1),
+    'retry_delay'     : timedelta(minutes=2),
 }
 
 # Define the DAG object
@@ -32,11 +33,10 @@ default_args = {
 # Define the PythonOperator to process the UniProt XML file and store the data in Neo4j
 def process_uniprot_xml():
     # Connect to the Neo4j graph database
-    neo4j_uri      = environ.get('NEO4J_URI')
-    neo4j_user     = environ.get('NEO4J_USER')
-    neo4j_password = environ.get('NEO4J_PASSWORD')
-    graph          = Graph(neo4j_uri, auth=(neo4j_user, neo4j_password))
-
+    #neo4j_conn = BaseHook.get_connection("neo4j_default")
+    #graph = Graph(host=neo4j_conn.host, user=neo4j_conn.login, password=neo4j_conn.password)
+    graph  = Graph("neo4j://127.0.0.1:7687", auth=("neo4j", "user_password"))
+    print("Connection to graph database successful")
     # Open the XML file
     with open('Q9Y261.xml', 'r') as f:
         xml_str = f.read()
@@ -77,9 +77,9 @@ def process_uniprot_xml():
 # Define the PythonOperator to query the Neo4j graph database
 def query_neo4j():
     # Connect to the Neo4j graph database
-    neo4j_uri      = environ.get('NEO4J_URI')
-    neo4j_user     = environ.get('NEO4J_USER')
-    neo4j_password = environ.get('NEO4J_PASSWORD')
+    neo4j_uri      = environ.get('NEO4J_URI', 'bolt://localhost:7687')
+    neo4j_user     = environ.get('NEO4J_USER', 'neo4j')
+    neo4j_password = environ.get('NEO4J_PASSWORD', 'user_password')
     graph          = Graph(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
     # Define a Cypher query to retrieve the number of Protein nodes in the graph
