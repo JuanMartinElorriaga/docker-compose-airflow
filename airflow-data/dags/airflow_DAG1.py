@@ -19,23 +19,15 @@ default_args = {
     'email_on_failure': False,
     'email_on_retry'  : False,
     'retries'         : 1,
-    'retry_delay'     : timedelta(minutes=5),
+    'retry_delay'     : timedelta(minutes=1),
 }
 
 # Define the DAG object
-dag = DAG(
-    'uniprot_neo4j_pipeline',
-    default_args      = default_args,
-    schedule_interval = timedelta(days=1),
-)
-
-# Define the BashOperator to download the UniProt XML file
-download_op = BashOperator(
-    task_id      = 'download_uniprot_xml',
-    #bash_command = 'curl -o uniprot.xml https://www.uniprot.org/uniprot/?query=*&format=xml', #TODO change for url github
-    bash_command = 'curl -LO https://github.com/JuanMartinElorriaga/datachallenge-test/blob/master/data/Q9Y261.xml',
-    dag          = dag,
-)
+#dag = DAG(
+#    'uniprot_neo4j_pipeline',
+#    default_args      = default_args,
+#    schedule_interval = timedelta(days=1),
+#)
 
 # Define the PythonOperator to process the UniProt XML file and store the data in Neo4j
 def process_uniprot_xml():
@@ -82,23 +74,6 @@ def process_uniprot_xml():
         graph.create(gene_organism_rel)
         graph.create(protein_reference_rel)
 
-# Define the PythonOperator to process the UniProt XML file
-process_op = PythonOperator(
-    task_id         = 'process_uniprot_xml',
-    python_callable = process_uniprot_xml,
-    dag             = dag,
-)
-
-# Define the Neo4jOperator to create an index on the Protein nodes
-create_index_op = Neo4jOperator(
-    task_id       = 'create_index',
-    sql           = 'CREATE INDEX ON :Protein(accession)',
-    neo4j_conn_id = 'neo4j_default'
-    #uri          = environ.get('NEO4J_URI', 'bolt://localhost:7687'),
-    #auth         = (environ.get('NEO4J_USER', 'neo4j'), environ.get('NEO4J_PASSWORD', 'neo4j')),
-    #dag          = dag,
-)
-
 # Define the PythonOperator to query the Neo4j graph database
 def query_neo4j():
     # Connect to the Neo4j graph database
@@ -114,12 +89,34 @@ def query_neo4j():
     result = graph.run(cypher_query).evaluate()
     print(f'Number of Protein nodes: {result}')
 
-# Define the PythonOperator to query the Neo4j graph database
-query_op = PythonOperator(
-    task_id         = 'query_neo4j',
-    python_callable = query_neo4j,
-    dag             = dag,
-)
+with DAG('uniprot_neo4j_pipeline', default_args=default_args, schedule_interval=timedelta(days=1)) as dag:
+    # Define the BashOperator to download the UniProt XML file
+    download_op = BashOperator(
+        task_id      = 'download_uniprot_xml',
+        #bash_command = 'curl -o uniprot.xml https://www.uniprot.org/uniprot/?query=*&format=xml', #TODO change for url github
+        bash_command = 'curl -LO https://github.com/JuanMartinElorriaga/datachallenge-test/blob/master/data/Q9Y261.xml'
+    )
 
-# Set the dependencies between the tasks
-download_op >> process_op >> create_index_op >> query_op
+    # Define the PythonOperator to process the UniProt XML file
+    process_op = PythonOperator(
+        task_id         = 'process_uniprot_xml',
+        python_callable = process_uniprot_xml
+    )
+
+    # Define the Neo4jOperator to create an index on the Protein nodes
+    create_index_op = Neo4jOperator(
+        task_id       = 'create_index',
+        sql           = 'CREATE INDEX ON :Protein(accession)',
+        neo4j_conn_id = 'neo4j_default'
+        #uri          = environ.get('NEO4J_URI', 'bolt://localhost:7687'),
+        #auth         = (environ.get('NEO4J_USER', 'neo4j'), environ.get('NEO4J_PASSWORD', 'neo4j'))
+    )
+
+    # Define the PythonOperator to query the Neo4j graph database
+    query_op = PythonOperator(
+        task_id         = 'query_neo4j',
+        python_callable = query_neo4j
+    )
+
+    # Set the dependencies between the tasks
+    download_op >> process_op >> create_index_op >> query_op
