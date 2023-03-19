@@ -14,7 +14,8 @@ if [ $IS_INITDB ]; then
 
   docker exec -ti airflow_cont airflow db init && echo "Initialized airflow DB"
   docker exec -ti airflow_cont airflow users create --role Admin --username $AIRFLOW_USER --password $AIRFLOW_PASSWORD -e $AIRFLOW_USER_EMAIL -f airflow -l airflow && echo "Created airflow Initial admin user with username $AIRFLOW_USER"
-
+  docker exec -ti airflow_cont airflow db upgrade && echo "Upgraded airflow DB"
+  
 else
   echo "Skipping InitDB and InitUser setup because value of IS_INITDB is $IS_INITDB"
 fi
