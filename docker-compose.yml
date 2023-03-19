@@ -48,6 +48,7 @@ services:
     ports:
       - 8080:8080
     volumes:
+      - ./airflow-data/data:/opt/airflow/data
       - ./airflow-data/dags:/opt/airflow/dags
       - ./airflow-data/plugins:/opt/airflow/plugins
       - logs-volume:/opt/airflow/logs
