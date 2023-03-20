@@ -11,6 +11,7 @@ import xml.dom.minidom as minidom
 from os import environ
 from dotenv import load_dotenv
 load_dotenv()
+#winpty sh init_airflow_setup.sh
 
 # Default arguments for the DAG
 default_args = {
@@ -30,7 +31,6 @@ default_args = {
 #    schedule_interval = timedelta(days=1),
 #)
 
-neo4j_conn = BaseHook.get_connection("neo4j_default")
 
 def download_uniprot_xml():
     # Download file to /tmp directory using curl command
@@ -41,8 +41,8 @@ def download_uniprot_xml():
 def process_uniprot_xml():
     # Connect to the Neo4j graph database
     #graph = Graph(host=neo4j_conn.host, user=neo4j_conn.login, password=neo4j_conn.password)
-    graph  = Graph("neo4j://127.0.0.1:7687", auth=("neo4j", "user_password"))
-    print("Connection to graph database successful")
+    #graph  = Graph("neo4j://127.0.0.1:7687", auth=("neo4j", "user_password"))
+    #print("Connection to graph database successful")
 
     # Open the XML file
     with open('/opt/airflow/dags/Q9Y261.xml', 'r') as f:
@@ -86,9 +86,27 @@ def process_uniprot_xml():
         gene_organism_rel     = Relationship(protein_node, 'IN_ORGANISM', organism_node)
         print(f"relationship created for gene_organism_rel: {gene_organism_rel}") 
         protein_reference_rel = Relationship(protein_node, 'HAS_REFERENCE', reference_node)
-        print(f"relationship created for protein_reference_rel: {protein_reference_rel}") 
-
+        
         # Add the nodes and relationships to the database
+        #routers = ["neo4j://127.0.0.1:7687"]
+        #graph  = Graph(scheme="bolt", host="127.0.0.1", port=7687, auth=("neo4j", "user_password"))
+        
+        #neo4j_conn = BaseHook.get_connection("neo4j_default")
+        graph  = Graph("bolt://neo4j_host:7687", auth=("neo4j", "user_password"))
+        print(f"connection to graph successfull: {graph}") 
+
+        database_name         = "neo4j"
+        database_exists_query = f"SHOW DATABASES" LIKE '{database_name}"
+        database_exists       = graph.evaluate(database_exists_query)
+        print("evaluation completed")
+        return database_exists
+        if not database_exists:
+            graph.execute(f"CREATE DATABASE {database_name}") 
+            print("db created successfully")
+        graph = Graph("bolt://127.0.0.1:7687/db/weavebiodb", auth=("neo4j", "user_password"))
+        print("switched to weavebio database")
+
+
         graph.create(protein_node)
         print(f"graph added to model for protein_node: {protein_node}") 
         graph.create(gene_node)
