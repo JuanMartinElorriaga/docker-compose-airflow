@@ -124,8 +124,8 @@ def process_uniprot_xml():
 # Define the PythonOperator to query the Neo4j graph database
 def query_neo4j():
     # Connect to the Neo4j graph database
-    graph  = Graph("neo4j://neo4j_host:7687", auth=("neo4j", "user_password"))
-
+    graph  = Graph("bolt://neo4j_host:7687", auth=("neo4j", "user_password"))
+    print("connection successful")
     # Define a Cypher query to retrieve the number of Protein nodes in the graph
     cypher_query = 'MATCH (p:Protein) RETURN count(p)'
 
@@ -155,7 +155,7 @@ with DAG('uniprot_neo4j_pipeline', default_args=default_args, schedule_interval=
     # Define the Neo4jOperator to create an index on the Protein nodes
     create_index_op = Neo4jOperator(
         task_id       = 'create_index',
-        sql           = 'CREATE INDEX ON :Protein(accession)',
+        sql           = 'CREATE INDEX FOR (n:Protein) ON (n.accession)',
         neo4j_conn_id = 'neo4j_default'
         #uri          = environ.get('NEO4J_URI', 'bolt://localhost:7687'),
         #auth         = (environ.get('NEO4J_USER', 'neo4j'), environ.get('NEO4J_PASSWORD', 'neo4j'))
