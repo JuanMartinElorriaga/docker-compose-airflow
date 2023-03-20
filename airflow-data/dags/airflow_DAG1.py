@@ -95,17 +95,16 @@ def process_uniprot_xml():
         graph  = Graph("bolt://neo4j_host:7687", auth=("neo4j", "user_password"))
         print(f"connection to graph successfull: {graph}") 
 
-        database_name         = "neo4j"
-        database_exists_query = f"SHOW DATABASES" LIKE '{database_name}"
-        database_exists       = graph.evaluate(database_exists_query)
-        print("evaluation completed")
-        return database_exists
-        if not database_exists:
-            graph.execute(f"CREATE DATABASE {database_name}") 
-            print("db created successfully")
-        graph = Graph("bolt://127.0.0.1:7687/db/weavebiodb", auth=("neo4j", "user_password"))
-        print("switched to weavebio database")
-
+        #database_name         = "neo4j"
+        #database_exists_query = f"SHOW DATABASES LIKE {database_name}"
+        #database_exists       = graph.evaluate(database_exists_query)
+        #print(f"evaluation completed: {database_exists}") 
+        #if not database_exists:
+        #    graph.execute(f"CREATE DATABASE {database_name}") 
+        #    print("db created successfully")
+        # switch to database
+        #graph = Graph(f"bolt://neo4j_host:7687/db/", auth=("neo4j", "user_password"))
+        #print(f"switched to database: {}") 
 
         graph.create(protein_node)
         print(f"graph added to model for protein_node: {protein_node}") 
@@ -125,7 +124,7 @@ def process_uniprot_xml():
 # Define the PythonOperator to query the Neo4j graph database
 def query_neo4j():
     # Connect to the Neo4j graph database
-    graph  = Graph("neo4j://127.0.0.1:7687", auth=("neo4j", "user_password"))
+    graph  = Graph("neo4j://neo4j_host:7687", auth=("neo4j", "user_password"))
 
     # Define a Cypher query to retrieve the number of Protein nodes in the graph
     cypher_query = 'MATCH (p:Protein) RETURN count(p)'
